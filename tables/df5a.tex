@@ -1,0 +1,22 @@
+% latex table generated in R 4.3.2 by xtable 1.8-4 package
+% Sun Feb 11 14:33:13 2024
+\begin{table}[H]
+\begin{widestuff}
+\caption{Common misconceptions for linear regression assumptions and outliers observed and inferred by this study.} 
+\begin{tabular}{p{5cm}p{13cm}}
+  \toprule
+{\bf Misconceptions} & {\bf Recommendations} \\ 
+  \midrule
+The normality assumption relates to the X and Y variables. & The normality assumption refers to the residuals rather than the X or Y variables.  In a simple two-group example, if the means of the groups are different, the Y variable may not be normally distributed and possibly bimodal.  A residual is a difference between what was observed and predicted by the model. There are expected to be some small, medium, and large residuals, but these residuals should be normally distributed. \\ 
+  Normality is the only important assumption. & Normality is the least important assumption; it becomes less critical with large sample sizes and is easily remedied by bootstrapping or data transformation.  While residuals of a univariate model may not be normally distributed, adding other variables that improve prediction may remediate normality problems. \\ 
+  Normality needs to be checked with statistical tests. & Normality tests can either lack power in small samples or are too sensitive in large samples. In linear regression, residuals should be roughly normal and are best judged with a Q-Q plot rather than a statistical test. \\ 
+  Linear regression can only have variables with linear relationships & The linearity assumption does not necessarily mean that X itself is linearly related to Y. Instead, the relationship between the predictors (in which X variables can be represented through multiple parameters) and the dependent variable is linear in the parameters (coefficients). The most straightforward non-linear relationship is quadratic, with X and X-squared as independent variables. \\ 
+  Only the original data (X, Y) should be checked for linearity. & The original data should be plotted to understand linear and non-linear relationships, the residuals should also be plotted against predicted values to ensure no curvature patterns remain. \\ 
+  No need to check for equal variance (homoscedasticity) because there are no groups. & Linear regression models, t-tests and ANOVA (general linear models) all have the same assumption of equality of variance. While some researchers may realise checking variance (squared standard deviation) between groups is required, they may not be able to translate this to a regression context. Homoscedasticity can be examined by plotting the residual against the predicted values and looking for funnelling patterns. \\ 
+  Cross-sectional studies have independent observations. & The independence of observations is viewed by many researchers in the context of repeated measures, i.e., measurement of the same patient at two time points.  There are frequently more complex study designs in health research, where patients may be clustered within hospitals or doctors.  Study design should always be discussed, and when clusters occur, the correlation should be investigated using more complex methods such as linear mixed models. \\ 
+  All outliers should be removed from the model. & Outliers should only be removed if they are data errors, e.g., implausible values. Removing outliers artificially reduces the variance and may exaggerate results. The presence and effect of outliers should be investigated and discussed. A generally useful solution is a sensitivity analysis allowing the impact on the model to be assessed, other remedies may include bootstrapping or data transformation. \\ 
+   \bottomrule
+\end{tabular}
+\end{widestuff}
+\end{table}
+
