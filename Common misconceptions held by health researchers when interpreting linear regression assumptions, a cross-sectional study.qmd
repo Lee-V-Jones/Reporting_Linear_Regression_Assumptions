@@ -1,0 +1,1452 @@
+---
+title: "Common misconceptions held by health researchers when interpreting linear regression assumptions, a cross-sectional study"
+format:
+  plos-pdf:
+    template-partials:
+      - before-bib.tex
+    number-sections: false
+    keep_tex: TRUE
+author:
+  - name: Lee Jones
+    affiliations:
+      - ref: aff1
+      - ref: aff2
+      - ref: aff3
+    corresponding: true
+    email: lee.jones@qut.edu.au
+  - name: Adrian Barnett
+    affiliations:
+      - ref: aff2
+  - name: Dimitrios Vagenas
+    affiliations:
+       - ref: aff1
+affiliations:
+  - id: aff1
+    name:  Research Methods Group, Faculty of Health, School of Public Health and Social Work, Queensland University of Technology
+    city: Kelvin Grove
+    state: Queensland
+    country: Australia
+  - id: aff2
+    name: AusHSI, Centre for Healthcare Transformation, Faculty of Health, School of Public Health and Social Work, Queensland University of Technology
+    city: Kelvin Grove
+    state: Queensland
+    country: Australia
+  - id: aff3
+    name: Statistics Unit, QIMR Berghofer Medical Research Institute
+    city:  Herston
+    state: Queensland
+    country: Australia
+  
+abstract: |
+ \textbf{Background} \newline
+ Statistical models are powerful tools that can be used to understand complex relationships in health systems.  Statistical assumptions are a part of a framework for understanding analysed data, enabling valid inferences and conclusions. When poorly analysed, studies can result in misleading conclusions, which, in turn, may lead to ineffective or even harmful treatments and poorer health outcomes.  This study examines researchers' understanding of the commonly used statistical model of linear regression. It examines understanding around assumptions, identifies common misconceptions, and recommends improvements to practice.       
+
+ \noindent \textbf{Methods} \newline
+  One hundred papers were randomly sampled from the journal PLOS ONE, which used linear regression in the materials and methods section and were from the health and biomedical field in 2019. Two independent volunteer statisticians rated each paper for the reporting of linear regression assumptions. The prevalence of assumptions reported by authors was described using frequencies, percentages, and 95% confidence intervals. The agreement of statistical raters was assessed using Gwet’s statistic.
+ 
+  \noindent \textbf{Results} \newline
+ Of the 95 papers that met the inclusion and exclusion criteria, only 37% reported checking any linear regression assumptions, 22% reported checking one assumption, and no authors checked all assumptions. The biggest misconception was that the Y variable should be checked for normality, with only 5 of the 28 papers correctly checking the residuals for normality.
+ 
+  \noindent  \textbf{Conclusion} \newline
+  The prevalence of reporting linear regression assumptions remains low. When reported, they were often incorrectly checked, with very few authors showing any detail of their checks. To improve reporting of linear regression, a significant change in practice needs to occur across multiple levels of research, from teaching to journal reviewing. The focus should be on understanding results where the underlying statistical theory is viewed through the lens of “everything is a regression” rather than deploying rote-learned statistics.
+  
+bibliography: bibliography.bib
+header-includes:
+ - \usepackage{longtable,booktabs}
+ - \usepackage[T1]{fontenc}
+ - \usepackage{changepage}
+ - \usepackage{float}
+ - \makeatletter\renewcommand*{\fps@figure}{H}\makeatother
+ - \raggedbottom
+ - \usepackage{makecell}
+ - \usepackage{pbox}
+ - \usepackage{colortbl}
+ - \newenvironment{widestuff}{\begin{adjustwidth}{-2.25in}{0in}\centering}{\end{adjustwidth}}
+ - \usepackage{array}
+ - \usepackage{tabularx}
+ - \usepackage{caption}% fix vertical spacing of table captions
+ - \usepackage{multirow} 
+ - \usepackage{varwidth}
+ - \newcolumntype{M}{>{\begin{varwidth}{4cm}}l<{\end{varwidth}}} %M is for Maximal column
+ - \usepackage{lmodern}
+ - \newcommand{\beginsupplement}{\setcounter{table}{0}  \renewcommand{\thetable}{S\arabic{table}} \setcounter{figure}{0} \renewcommand{\thefigure}{S\arabic{figure}}}
+ - \usepackage[table]{xcolor}
+ - \definecolor{lightgray}{gray}{0.94}
+ - \let\oldtabular\tabular
+ - \let\endoldtabular\endtabular
+ - \renewenvironment{tabular}{\rowcolors{2}{lightgray}{white}\oldtabular}{\endoldtabular}
+ - \usepackage{lineno}
+ -  \linenumbers
+ -  \renewcommand\makeLineNumber{}
+ -  \usepackage{amsmath,amssymb}
+ - \setlength{\parindent}{0.5cm} 
+ - \setlength{\parskip}{0pt} 
+ - \usepackage{hyperref} % Place this in your LaTeX document preamble    
+
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = FALSE)
+
+```
+
+
+```{r data}
+library(knitr)
+library(tidyverse)
+library(summarytools)
+library(flextable)
+library(officer)
+library(irrCAC)
+library(xtable)
+library(bookdown)
+library(formatR)
+library(PropCIs)
+library(DescTools)
+library(rlist)
+library (gtsummary)
+library(car)
+
+
+
+# read in data
+wide <- read_csv (file = "data/wide.csv")
+dem <- read_csv (file = "data/dem.csv")
+
+
+#  factor order for tables
+wide <- wide %>%
+  mutate(design = factor(design, levels = c("Observational", "Experimental"))) %>%
+  mutate(participants   = factor(
+    participants  ,
+    levels = c(
+      "Human",
+      "Animal",
+      "Mix of animal and human",
+      "Mix of animal and plant",
+      "Other studies",
+      "Lab study with comparison to other studies",
+      "Environmental samples"
+    )
+  ))
+
+
+
+dem <- dem %>%
+  mutate(Experience = factor(
+    Experience,
+    levels = c("<5 years",  "5-9 years" , "10-19 years" , "20+ years")
+  )) %>%
+  mutate(Role = factor(
+    Role,
+    levels = c
+    (
+      "Biostatistician",
+      "Statistician" ,
+      "Applied statistician" ,
+      "Data scientist",
+      "Data analyst",
+      "Other"
+    )
+  )) %>%
+  mutate(Edu = factor(
+    Edu,
+    levels = c
+    (
+      "PhD",
+      "Masters",
+      "Honours",
+      "Bachelor" ,
+      "Diploma",
+      "No formal education"
+    )
+  )) %>%
+  mutate(Find = factor(
+    Find,
+    levels = c (
+      "Referred by a colleague",
+      "Professional society",
+      "Email" ,
+      "LinkedIn"
+    )
+  ))
+
+
+
+# function to round and give exact number of decimal places
+Sround <-
+  function(x, k)
+    trimws(format(round(x, k), nsmall = k))
+
+# function so that numbers can be printed as words
+int_to_words <- function(x) {
+  index <- as.integer(x) + 1
+  words <- c('zero',
+             'one',
+             'two',
+             'three',
+             'four',
+             'five',
+             'six',
+             'seven',
+             'eight',
+             'nine',
+             'ten')
+  words[index]
+}
+
+
+#GT summary theme
+my_theme <-
+  list(
+       "pkgwide-fn:pvalue_fun" = function(x)
+      style_pvalue(x, digits = 3),
+    "pkgwide-fn:prependpvalue_fun" = function(x)
+      style_pvalue(x, digits = 3, prepend_p = TRUE),
+      "tbl_summary-str:continuous_stat" = "{mean} ({SD})",
+    "tbl_summary-str:categorical_stat" = "{n} ({p}%)"
+  )
+set_gtsummary_theme(my_theme)
+
+
+# capture session information in a text file
+#sessionInfo() %>% capture.output(file="session_info.txt")
+
+
+
+  
+```
+
+
+
+
+
+```{r, results='hide'}
+
+
+df1 <-
+  wide %>% dplyr::select(design, participants) %>%  tbl_summary() %>% as_tibble
+
+names(df1) <- c("Characteristic", "ReplaceN")
+
+#creating the latex syntax
+sbold <- function(x) {
+  paste0('{\\bf ', x, '}')
+}
+df1a <-
+  print(
+    xtable(df1, caption = "Description of included papers (N = 95)."),
+    booktabs = getOption("xtable.booktabs", TRUE),
+    caption.placement = "top",
+    include.rownames = FALSE,
+    type = "latex",
+    sanitize.colnames.function = sbold,
+    table.placement = "H"
+  )
+
+# post table editing
+df1a <- sub('ReplaceN',  "n (\\\\%) ", df1a)
+df1a <- sub('design', "\\\\textbf {Study Design}", df1a)
+df1a <- sub('participant', "\\\\textbf {Participant Type}", df1a)
+df1a <- sub("\\centering", "", df1a, fixed = TRUE)
+
+#write to tables folder
+dir_name <- "tables"
+file_path1 <- file.path(dir_name, "df1a.tex")
+write(df1a, file = file_path1, sep = "\t")
+
+
+
+```
+
+
+```{r, results='hide'}
+df2 <-
+  dem %>% dplyr::select(Role, Edu, Experience, Find) %>%  tbl_summary() %>% as_tibble
+
+names(df2) <- c("Characteristic", "ReplaceN")
+
+#creating the latex syntax
+df2a <-
+  print(
+    xtable(df2, caption = "Descriptive statistics for statisticians (N = 40)."),
+    booktabs = getOption("xtable.booktabs", TRUE),
+    caption.placement = "top",
+    include.rownames = FALSE,
+    type = "latex",
+    comment = FALSE,
+    sanitize.colnames.function = sbold,
+    floating = T
+  )
+
+# post table editing
+df2a <- sub('ht', "H", df2a)
+df2a <- sub('ReplaceN',  "n (\\\\%) ", df2a)
+df2a <- sub('Role', "\\\\textbf {Role}", df2a)
+df2a <-
+  sub('Edu',
+      "\\\\textbf {Highest statistical or mathematical education}",
+      df2a)
+df2a <-
+  sub('Find', "\\\\textbf {How did you find out about this study?}", df2a)
+df2a <- sub('Experience', "\\\\textbf {Years of experience}", df2a)
+df2a <- sub("\\centering", "", df2a, fixed = TRUE)
+
+# write to tables foldder
+file_path2 <- file.path(dir_name, "df2a.tex")
+write(df2a, file = file_path2, sep = "\t")
+
+```
+
+
+
+```{r, results='hide'}
+
+
+
+#  Summing number of assumptions
+wide <- wide  %>%
+  rowwise %>%
+  mutate(resid_4 = sum(
+    c(normresidual_4,  linresidual_4,   homresidual_4, indresidual_4) == 1,
+    na.rm = T
+  ))
+
+wide <-
+  wide  %>% rowwise %>% mutate(assum4 = sum(
+    c(normality_4, linearity_4, homoscedasticity_4, independence_4) == 1,
+    na.rm = T
+  ))
+
+# assumptions for papers with no continous x variables
+widenolin <- wide  %>% filter(linearnorequire == 1) %>%   rowwise %>%
+  mutate(assum4Nolinear = sum(c(
+    normality_4, homoscedasticity_4, independence_4
+  ) == 1, na.rm = T))
+
+
+
+# Variables needed to create prevalence tables
+wide1 <- wide %>% select(
+  paper_ID,
+  assumptions_4,
+  normality_4,
+  normunclear_4,
+  normy_4,
+  normx_4,
+  normsuby_4,
+  normresidual_4,
+  normhowunclear_4,
+  normnot_4,
+  normdes_4,
+  normplot_4,
+  normtest_4,
+  linearity_4,
+  linunclear_4,
+  linnot_4,
+  linraw_4,
+  linplot_4,
+  linresidual_4,
+  lintest_4,
+  homoscedasticity_4,
+  homunclear_4,
+  homnot_4,
+  homraw_4,
+  homplot_4,
+  homresidual_4,
+  homtest_4,
+  independence_4,
+  indunclear_4,
+  indnot_4,
+  inddesign_4,
+  indraw_4,
+  indplot_4,
+  indresidual_4,
+  indtest_4,
+  outaction_4
+)
+wide1 <- wide1[c(2:36)]
+
+
+#get frequencies and % for assumptions table
+ft10 <-
+  wide1 %>%  tbl_summary(missing = "no" ,
+                         digits = list(all_categorical() ~ 0))  %>%   add_n () %>% as_tibble()
+names(ft10) <- c("Variables", "N", "Prevalence")
+#add rows for zero categories in outliers
+ft10 <- ft10 %>% add_row(.after = 40) %>% add_row(.after = 40)
+
+
+#getting CI for prevalence
+my_list2 <-
+  list(
+    wide1$assumptions_4,
+    wide1$normality_4,
+    wide1$normunclear_4,
+    wide1$normy_4,
+    wide1$normx_4,
+    wide1$normsuby_4,
+    wide1$normresidual_4,
+    wide1$normhowunclear_4,
+    wide1$normnot_4,
+    wide1$normdes_4,
+    wide1$normplot_4,
+    wide1$normtest_4,
+    wide1$linearity_4,
+    wide1$linunclear_4,
+    wide1$linnot_4,
+    wide1$linraw_4,
+    wide1$linplot_4,
+    wide1$linresidual_4,
+    wide1$lintest_4,
+    wide1$homoscedasticity_4,
+    wide1$homunclear_4,
+    wide1$homnot_4,
+    wide1$homraw_4,
+    wide1$homplot_4,
+    wide1$homresidual_4,
+    wide1$homtest_4,
+    wide1$independence_4,
+    wide1$indunclear_4,
+    wide1$indnot_4,
+    wide1$inddesign_4,
+    wide1$indraw_4,
+    wide1$indplot_4,
+    wide1$indresidual_4,
+    wide1$indtest_4
+  )
+
+
+observed <- sapply(my_list2, function(i)
+  sum(i, na.rm = TRUE))
+valid_counts <- sapply(my_list2, function(i)
+  sum(!is.na(i)))
+wCI <- BinomCI(observed,
+               valid_counts,
+               conf.level = 0.95,
+               method = "wilson")
+Wci <- as.data.frame(wCI) %>%
+  mutate(
+    est = Sround(est * 100, 0),
+    lwr.ci = Sround(lwr.ci * 100, 0),
+    upr.ci = Sround(upr.ci * 100, 0),
+    wci = paste0(lwr.ci, "%", ", ", upr.ci, "%")
+  )
+
+
+# outliers not binary so needs different function
+observed4 <- freq(wide1$outaction_4)
+observed4 <-
+  observed4[c(1:5, 7, 7, 6), 1] ## putting in zero for unobserved categories. there are zero NA which is row 7 so just replaced with this
+M4 <-
+  as.data.frame(MultinomCI(observed4, conf.level = 0.95, method = "wilson")) %>%
+  mutate(
+    est = format(round(est * 100, 0), nsmall = 0),
+    lwr.ci = format(round(lwr.ci * 100, 0), nsmall = 0),
+    upr.ci = format(round(upr.ci * 100, 0), nsmall = 0),
+    wci = paste0(lwr.ci, "%", ", ", upr.ci, "%")
+  )
+rownames(M4) <- NULL
+#add rows for outliers
+Wci <-
+  Wci %>% add_row(.after = 34) %>% add_row(.after = 34) %>% add_row(.after =
+                                                                      34) %>% add_row(.after = 34) %>% add_row(.after = 34) %>% add_row(.after =
+                                                                                                                                          34) %>% add_row(.after = 34) %>% add_row(.after = 34) %>% add_row(.after =
+                                                                                                                                                                                                              34)
+
+#add outliers to the prevalance results
+Wci$wci[36:43] <- M4$wci[1:8]
+Wci$est[36:43] <- M4$est[1:8]
+
+ft10$Variables <-
+  c(
+    'Strategy for assessing linear regression assumptions?',
+    'Did the authors check the normality assumption?',
+    'Unclear',
+    'Y variable',
+    'X variable',
+    'Sub groups of Y',
+    'Residuals',
+    'Unclear',
+    'Not described',
+    'Descriptive statistics',
+    'Plots',
+    'Statistical test',
+    'Did the authors check the linearity assumption?',
+    'Unclear',
+    'Not described',
+    'Raw data',
+    'Plots',
+    'Residuals',
+    'Statistical test',
+    'Did the authors check the homoscedasticity assumption?',
+    'Unclear',
+    'Not described',
+    'Raw data',
+    'Plots',
+    'Residuals',
+    'Statistical test',
+    'Did the authors check the independence of observations?',
+    'Unclear',
+    'Not described',
+    'Authors stated independent design',
+    'Raw data',
+    'Plots',
+    'Residuals',
+    'Statistical test',
+    'What did they do with respect to outliers?',
+    'Outliers not discussed',
+    'Unclear',
+    'No action taken',
+    'Outliers removed from all analyses',
+    'Sensitivity analysis',
+    'Data transformation',
+    'Bootstrapped',
+    'Other'
+  )
+
+#replacing zero prevalence
+ft10$Prevalence[41] <- "0 (0%)"
+ft10$Prevalence[42] <- "0 (0%)"
+# including prevalence in main table
+Wci$wci[36:43] <- M4$wci[1:8]#
+Wci$est[36:43] <- M4$est[1:8]#
+ft10$pci <- Wci$wci
+
+# adding rows for titles
+ft10 <-
+  ft10 %>% add_row(.after = 2) %>% add_row(.after = 8) %>% add_row(.after = 15) %>% add_row(.after = 23) %>% add_row(.after = 31)
+
+ft10$Variables[3] <- "What was checked with regards to normality?"
+ft10$Variables[9] <- "How was normality assessed?"
+ft10$Variables[16] <- "How was linearity assessed?"
+ft10$Variables[24] <- "How was homoscedasticity assessed?"
+ft10$Variables[32] <- "How was independence assessed?"
+names(ft10) <- c("Variables",  "N" ,  "ReplaceN", "95 CI")
+
+df3 <- ft10[c(1:48), c(1:4)]
+rownames(df3) <- NULL
+df3 <- as.tibble(df3)
+#write.csv(df3, file = "df3.csv")
+
+
+# creating the latex syntax
+sbold <- function(x) {
+  paste0('{\\bf ', x, '}')
+}
+df3a <-
+  print(
+    xtable(
+      df3,
+      caption = "Observed prevalence and 95 confidence intervals for statistical
+             assumptions and outliers.",
+      align = c("l", "p{9cm}",  "l", "l", "l")
+    ),
+    booktabs = getOption("xtable.booktabs", TRUE),
+    caption.placement = "top",
+    include.rownames = FALSE,
+    type = "latex",
+    latex.environments = "widestuff",
+    sanitize.colnames.function = sbold,
+    floating = T
+  )
+
+# post table editing
+df3a <- sub('ht', "H", df3a)
+df3a <- sub('ReplaceN',  "n (\\\\%) ", df3a)
+df3a <- sub('and 95',  "and 95\\\\% ", df3a)
+df3a <- sub('95 CI', "95\\\\% CI", df3a)
+df3a <- sub('95  CI', "95\\\\% CI", df3a)
+
+
+df3a <-
+  sub(
+    "\\begin{tabular}{p{9cm}lll}",
+    "\\begin{flushleft}  \\begin{tabular}{p{9cm}lll} " ,
+    df3a,
+    fixed = TRUE
+  )
+df3a <-
+  sub(
+    "\\end{tabular}",
+    "\\end{tabular} \\end{flushleft} \\begin{flushleft} N = Number of papers; n (\\%) = Prevalence;  95\\% CI  =	Wilson 95\\% confidence intervals. \\end{flushleft}",
+    df3a,
+    fixed = TRUE
+  )
+
+# write to tables folder
+file_path3 <- file.path(dir_name, "df3a.tex")
+write(df3a, file = file_path3, sep = "\t")
+
+
+```
+
+
+
+
+
+```{r gwet, results='hide'}
+# creating datasets for the gwets Kappa
+normality <-
+  wide %>% select(normality_1s, normality_2s) %>% na.omit
+normality_1 <-
+  wide %>% select(normality_4, normality_1s) %>% na.omit # agreement against final prevalence
+normality_2 <-
+  wide %>% select(normality_4, normality_2s) %>% na.omit  # agreement against final prevalence
+linearity <- wide %>% select(linearity_1s, linearity_2s) %>% na.omit
+linearity_1 <-
+  wide %>% select(linearity_4, linearity_1s) %>% na.omit # agreement against final prevalence
+linearity_2 <-
+  wide %>% select(linearity_4, linearity_2s) %>% na.omit # agreement against final prevalence
+homoscedasticity <-
+  wide %>% select(homoscedasticity_1s, homoscedasticity_2s) %>% na.omit
+homoscedasticity_1 <-
+  wide %>% select(homoscedasticity_4, homoscedasticity_1s) %>% na.omit # agreement against final prevalence
+homoscedasticity_2 <-
+  wide %>% select(homoscedasticity_4, homoscedasticity_2s) %>% na.omit # agreement against final prevalence
+independence <-
+  wide %>% select(independence_1s, independence_2s) %>% na.omit
+independence_1 <-
+  wide %>% select(independence_4, independence_1s) %>% na.omit # agreement against final prevalence
+independence_2 <-
+  wide %>% select(independence_4, independence_2s) %>% na.omit # agreement against final prevalence
+outaction <- wide %>% select(outaction_1s, outaction_2s) %>% na.omit
+outaction_1 <-
+  wide %>% select(outaction_4, outaction_1s) %>% na.omit # agreement against final prevalence
+outaction_2 <-
+  wide %>% select(outaction_4, outaction_2s) %>% na.omit # agreement against final prevalence
+rate <- wide %>% select(rate_1s, rate_2s) %>% na.omit
+
+
+
+# rating of papers is on an ordinal scale
+rategwet <- gwet.ac1.raw(rate, weights = "quadratic")
+
+rategwet <- rategwet$est %>%
+  dplyr::select(pa,pe, coeff.val, conf.int, coeff.se, p.value) %>%
+  dplyr::mutate(
+    p.value = if_else(p.value < 0.001, "<0.001", as.character(round(p.value, digits = 3))),
+    Gwet = format(round(coeff.val, 2), nsmall = 2),
+    Agreement = paste0(format(round(pa * 100, 0), nsmall = 0), "%"), 
+    Pe = paste0(format(round(pe * 100, 0), nsmall = 0), "%"),
+    SE = Sround(coeff.se, 2),
+  ) %>%
+  mutate(conf.int = str_replace_all(
+    string = conf.int,
+    pattern = "[\\*\\(\\)]",
+    replacement = ""
+  )) %>%
+  tidyr::separate(conf.int, c("l", "u"), ",") %>%
+  dplyr::mutate(
+    l = format(round(as.numeric(l), 2), nsmall = 2),
+    u = format(round(as.numeric(u), 2), nsmall = 2),
+    `CI95` = paste0(l, ", ", u)
+  ) %>%
+  dplyr::select(Agreement, Pe, Gwet,  `CI95`, SE, p.value)
+
+
+
+my_list1 <-
+  list(normality,
+       linearity,
+       homoscedasticity,
+       independence,
+       outaction)
+my_list_1 <-
+  list(normality_1,
+       linearity_1,
+       homoscedasticity_1,
+       independence_1,
+       outaction_1)
+my_list_2 <-
+  list(normality_2,
+       linearity_2,
+       homoscedasticity_2,
+       independence_2,
+       outaction_2)
+
+process_data <- function(data_list) {
+  # Apply gwet.ac1.raw to each data frame in the list
+  gwet <- lapply(data_list, function(df)
+    gwet.ac1.raw(df)[1])
+  # Bind and stack the list of results
+  gwet <- list.rbind(gwet)
+  gwet <- list.stack(gwet)
+  
+  #  format the data
+  gwet_formatted <- gwet %>%
+    dplyr::select(pa, pe, coeff.val, conf.int, coeff.se, p.value) %>%
+    dplyr::mutate(
+      p.value = if_else(p.value < 0.001, "<0.001", as.character(Sround(p.value, 3))),
+      coeff.val = Sround(coeff.val, 2),
+      coeff.se = Sround(coeff.se, 2),
+      pa = paste0(Sround(pa * 100, 0), "%"),
+       pe = paste0(Sround(pe * 100, 0), "%")
+    ) %>%
+    tidyr::separate(conf.int, c("l", "u"), ",", extra = "merge") %>%
+    dplyr::mutate(
+      l = stringr::str_replace(l, "[\\[\\(\\]]", ""),
+      u = stringr::str_replace(u, "[\\[\\)\\]]", ""),
+      l = Sround(as.numeric(l), 2),
+      u = Sround(as.numeric(u), 2),
+      conf.int = paste0(l, ", ", u)
+    ) %>%
+    dplyr::select(pa, pe, coeff.val, conf.int, coeff.se, p.value) %>%
+    rename(
+      "Agreement" = "pa",
+      "Pe" = "pe",
+      "Gwet" = "coeff.val",
+      "95% CI" = "conf.int",
+      "SE" = "coeff.se"
+    )
+  
+  return(gwet_formatted)
+}
+
+# Apply the function to each list
+results1 <- process_data(my_list1) %>%
+  mutate(
+    `95% CI` = if_else(row_number() == 3, " ", `95% CI`),
+    Pe = if_else(row_number() == 3, " ", Pe),
+    Gwet = if_else(row_number() == 3, " ", Gwet),
+    SE = if_else(row_number() == 3, " ", SE),
+    p.value = if_else(row_number() == 3, " ", p.value)
+  )
+
+results_1 <- process_data(my_list_1)
+results_2 <- process_data(my_list_2)
+
+Variable <-
+  c("Normality",
+    "Linearity",
+    "Homoscedasticity",
+    "Independence",
+    "Outliers")
+
+S1 <- rbind(results1, results_1, results_2) %>%
+  mutate(Variable = rep(Variable, times = 3)) %>%
+  add_row(.before = 1) %>%
+  add_row(.after = 6) %>%
+  add_row(.after = 12) %>%
+  mutate(Variable = replace(
+    Variable,
+    c(1, 7, 13),
+    c(
+      "Rating 1 vs Rating 2",
+      "Rating 1 vs Prevalence",
+      "Rating 2 vs Prevalence"
+    )
+  )) %>%
+  select(Variable, everything()) %>%  add_row(.before = 7) 
+
+S1[7, 1]<-"Rating"
+S1[7, 2:7]<-rategwet[1:6]
+
+
+# Create a new Word document
+doc <- read_docx()
+
+doc <-
+  body_add_par(doc,
+               "S1 Table: Full reporting of agreement and reliability for statistical raters.",
+               style = "Normal")
+doc <-
+  body_add_par(doc, " ", style = "Normal")  # Adding an empty line for spacing
+
+doc <- body_add_flextable(
+  doc,
+  value = S1 %>%
+    flextable() %>%
+    set_table_properties(layout = "autofit") %>%
+    set_header_labels(p.value = "p-value") %>% 
+    fontsize(size = 9, part = "all") %>%
+    bold(
+      i = c(1, 8, 14),
+      j = 1,
+      bold = TRUE
+    ) # Add this line
+)
+
+# Add footnote
+doc <-
+  body_add_par(
+    doc,
+    "Agreement = Observed agreement, Pe = The expected agreement by chance, Gwet = Gwet agreement coefficient, 95% CI = Gwet 95% confidence intervals, SE = Standard Error. Homoscedasticity had 100% agreement for the two raters resulting in a Gwet SE of zero, therefore, these results were not reported. The paper rating was only of interest between the two raters, and was scored on a Likert scale, and was analysed using quadratic weights; all other variables were binary and did not require weighting.",
+    style = "Normal"
+  )
+# Define the path for the subfolder and file
+subfolder_path <- "tables/"
+file_name <-
+  "S1 Table_Full reporting of agreement and reliability for statistical raters.docx"
+full_path <- paste0(subfolder_path, file_name)
+print(doc, target = full_path)
+
+df4 <- cbind(
+  Variable,
+  results1 %>% select(-p.value,-SE, -Pe),
+  results_1 %>% select(-p.value,-SE, -Pe),
+  results_2 %>% select(-p.value,-SE, -Pe)
+) %>% setNames(
+  c(
+    "Variable",
+    "Agree",
+    "Gwet",
+    "95 CI",
+    "Agree",
+    "Gwet",
+    "95 CI",
+    "Agree",
+    "Gwet",
+    "95 CI"
+  )
+)
+
+
+
+
+
+
+
+
+# creating the latex syntax
+sbold <- function(x) {
+  paste0('{\\bf ', x, '}')
+}
+df4a <-
+  print(
+    xtable(
+      df4,
+      caption = " Agreement and reliability of statistical raters.",
+      align = c("l", "l",  "l", "l", "l", "l", "l",  "l", "l", "l", "l")
+    ),
+    booktabs = getOption("xtable.booktabs", TRUE),
+    caption.placement = "top",
+    include.rownames = FALSE,
+    type = "latex",
+    latex.environments = "widestuff",
+    sanitize.colnames.function = sbold,
+    floating = T
+  )
+
+# post table editing
+df4a <- sub('ht', "H", df4a)
+df4a <- sub('95 CI', "95\\\\% CI", df4a)
+df4a <- sub('95 CI', "95\\\\% CI", df4a)
+df4a <- sub('95 CI', "95\\\\% CI", df4a)
+
+df4a <-
+  sub(
+    "\\begin{tabular}{llllllllll}",
+    "\\begin{flushleft}  \\begin{tabular}{llllllllll}" ,
+    df4a,
+    fixed = TRUE
+  )
+df4a <-
+  sub(
+    "\\end{tabular}",
+    "\\end{tabular} \\end{flushleft} \\begin{flushleft}  Agree = Observed agreement, Gwet = Gwet agreement coefficient; 95\\% CI = Gwet 95\\% confidence intervals. \\end{flushleft}",
+    df4a,
+    fixed = TRUE
+  )
+
+df4a <-
+  sub(
+    "\\\\toprule",
+    "\\\\toprule & \\\\multicolumn{3}{l}{\\\\textbf{Rating 1 vs Rating 2}} & \\\\multicolumn{3}{l}{\\\\textbf{Rating 1 vs Prevalence}} & \\\\multicolumn{3}{l}{\\\\textbf{Rating 2 vs Prevalence}} \\\\\\\\
+\\\\cline{2-10}",
+df4a
+  )
+
+# write to tables folder
+file_path4 <- file.path(dir_name, "df4a.tex")
+write(df4a, file = file_path4, sep = "\t")
+
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r Misconceptions,  results='hide'}
+
+
+
+# creation of Misconceptions table
+df5 = data.frame(matrix(vector(), 8, 2, dimnames = list(
+  c(), c("Misconceptions", "Recommendations")
+)),
+stringsAsFactors = F)
+
+df5$Misconceptions[1] <-
+  "The normality assumption relates to the X and Y variables."
+df5$Recommendations[1] <-
+  "The normality assumption refers to the residuals rather than the X or Y variables.  In a simple two-group example, if the means of the groups are different, the Y variable may not be normally distributed and possibly bimodal.  A residual is a difference between what was observed and predicted by the model. There are expected to be some small, medium, and large residuals, but these residuals should be normally distributed."
+df5$Misconceptions[2] <- "Normality is the only important assumption."
+df5$Recommendations[2] <-
+  "Normality is the least important assumption; it becomes less critical with large sample sizes and is easily remedied by bootstrapping or data transformation.  While residuals of a univariate model may not be normally distributed, adding other variables that improve prediction may remediate normality problems."
+df5$Misconceptions[3] <-
+  "Normality needs to be checked with statistical tests."
+df5$Recommendations[3] <-
+  "Normality tests can either lack power in small samples or are too sensitive in large samples. In linear regression, residuals should be roughly normal and are best judged with a Q-Q plot rather than a statistical test."
+df5$Misconceptions[4] <-
+  "Linear regression can only have variables with linear relationships"
+df5$Recommendations[4] <-
+  "The linearity assumption does not necessarily mean that X itself is linearly related to Y. Instead, the relationship between the predictors (in which X variables can be represented through multiple parameters) and the dependent variable is linear in the parameters (coefficients). The most straightforward non-linear relationship is quadratic, with X and X-squared as independent variables."
+df5$Misconceptions[5] <-
+  "Only the original data (X, Y) should be checked for linearity."
+df5$Recommendations[5] <-
+  "The original data should be plotted to understand linear and non-linear relationships, the residuals should also be plotted against predicted values to ensure no curvature patterns remain."
+df5$Misconceptions[6] <-
+  "No need to check for equal variance (homoscedasticity) because there are no groups."
+df5$Recommendations[6] <-
+  "Linear regression models, t-tests and ANOVA (general linear models) all have the same assumption of equality of variance. While some researchers may realise checking variance (squared standard deviation) between groups is required, they may not be able to translate this to a regression context. Homoscedasticity can be examined by plotting the residual against the predicted values and looking for funnelling patterns."
+df5$Misconceptions[7] <-
+  "Cross-sectional studies have independent observations."
+df5$Recommendations[7] <-
+  "The independence of observations is viewed by many researchers in the context of repeated measures, i.e., measurement of the same patient at two time points.  There are frequently more complex study designs in health research, where patients may be clustered within hospitals or doctors.  Study design should always be discussed, and when clusters occur, the correlation should be investigated using more complex methods such as linear mixed models."
+df5$Misconceptions[8] <-
+  "All outliers should be removed from the model."
+df5$Recommendations[8] <-
+  "Outliers should only be removed if they are data errors, e.g., implausible values. Removing outliers artificially reduces the variance and may exaggerate results. The presence and effect of outliers should be investigated and discussed. A generally useful solution is a sensitivity analysis allowing the impact on the model to be assessed, other remedies may include bootstrapping or data transformation."
+
+
+df5a <-
+  print(
+    xtable(
+      df5,
+      caption = "Common misconceptions for linear regression assumptions and outliers observed and inferred by this study.",
+      align = c("l", "p{5cm}", "p{13cm}")
+    ),
+    booktabs = getOption("xtable.booktabs", TRUE),
+    caption.placement = "top",
+    include.rownames = FALSE,
+    type = "latex",
+    latex.environments = "widestuff",
+    sanitize.colnames.function = sbold,
+    floating = T
+  )
+
+df5a <- sub('ht', "H", df5a)
+
+#write to tables folder
+file_path5 <- file.path(dir_name, "df5a.tex")
+write(df5a, file = file_path5, sep = "\t")
+
+
+```
+
+
+
+
+Introduction
+============
+
+Medical research relies on the ability of researchers to verify and build on previous work. Researchers are continuously publishing new findings that can be used to develop new treatments for diseases and inform public policy. Dissemination of research through publication in peer-reviewed journals is a critical step in the scientific process that requires rigorous methods to be applied to ensure treatments are effective and appropriate [@boutron2018misrepresentation]. Evaluation and improvement of research practices [@ioannidis2018meta] are essential steps that can identify flawed studies and improve the rigour and reproducibility of research.
+
+Meta-research is an emerging field that examines the reporting, reproducibility, evaluation and improvement of research practices [@ioannidis2018meta]. Meta-research allows an understanding of the biases throughout the research process [@bero2018meta]. Research evaluation has always occurred but, until very recently, was fragmented, with many fields operating in isolation and not sharing or implementing lessons learnt from other areas [@ioannidis2015meta].  According to Ioannidis et al. [@ioannidis2015meta], meta-research uses a conceptual framework with five main themes: (1) methods, (2) reporting, (3) reproducibility, (4) evaluation, and (5) incentives.   This framework fits well in evaluating statistical methods allowing an assessment of the overall quality and reliability of results.
+
+Statistical models provide tools to understand relationships in health systems by exploring data variability,  estimating the effectiveness of new treatments and gaining better understanding of disease pathways. Unfortunately, when statistical methods are used poorly, they can provide misleading results, leading to wasted resources and patients receiving ineffective or even harmful treatments [@ioannidis2014increasing; @altman2002poor]. The underlying statistical assumptions should be satisfied for statistical tests to be reliable. If assumptions of tests are not met, the results may be misleading. At best, this may cause estimates to be inaccurate without changing the study's conclusion. At worst, assumption violations can cause results to be invalid, with the original findings found to be incorrect. Discussion of statistical assumptions is frequently absent from publications [@thiese2015misuse], with one study in the biomedical area showing assumptions were mentioned in only 20% of papers [@fernandez2018reporting].  
+
+Poor statistical practice and reporting are pervasive across many disciplines [@bruns2019reporting; @thiese2015misuse; @stark2018cargo], with King et al.  [@king2019using] identifying a research-to-practice gap, where applied researchers are often called upon to use statistical methods without sufficient expertise [@altman2002statistical; @strasak2007use].  Arguably Ronald Fisher, one of the most influential statisticians of the 20th century, opened the doors to applied researchers with the publication of Statistical Methods for Research Workers in 1925, enabling the practical use of statistics across many fields [@conniffe1988ra]. However, it is unlikely Fisher could have envisioned the future of accessible statistical programs where users do not require technical understanding to produce results. 
+
+The growing availability of data and increasing reliance on statistical analysis in research have increased the need for researchers to have a strong understanding of statistical methods. However, many researchers have only basic statistical training and limited access to statisticians [@altman1994scandal].  As a result, they often encounter challenges in applying statistical methods correctly. In this study, we explore these challenges and misconceptions by examining the understanding of one of the most widely used statistical techniques in research: linear regression and its assumptions. We aim to better understand the research-to-practice gap experienced by researchers and make recommendations to strengthen training and reporting guidelines.
+
+
+
+## Research questions
+
+-	What is the prevalence of publication author teams who have demonstrated in their manuscript that they have checked linear regression assumptions?
+-	Are author teams checking assumptions correctly? 
+-	What is the agreement of ratings for statistical assumptions made by different statisticians?   
+
+
+
+Materials and Methods
+============
+The primary outcome is to understand the current reporting practices of authors in published manuscripts regarding linear regression with a focus on its assumptions. Previous studies show that the prevalence of reporting assumptions ranges from 0 to 13% [@fernandez2018reporting;@zhou2017reassessment], with assumptions most often being reported under 10% of the time. The prevalence of assumptions in this study was estimated by a random sample of papers meeting the search criteria of 'linear regression' from PLOS ONE. 
+
+## Sample size
+A sample size of 100 papers was found to be adequate to detect a sample proportion of 0.05 (5%) using a two-sided 95% confidence interval with a margin of error of 5%. This sample size was calculated using a test for one proportion with exact Clopper--Pearson confidence intervals, using PASS [@pass2013]. For these papers, it was deemed feasible to recruit 40 statisticians (40 statisticians × 5 papers = 200 reviews), and from our experience and feedback during the development stage, having each statistician review five papers was manageable. Each paper was rated twice by two independent statisticians to increase the robustness of the results and provide data on the agreement in statisticians when checking assumptions.
+
+## Question development
+A set of questions was developed to  understand current reporting practices for linear regression analysis. The questions were adapted from the Statistical Analyses and Methods in the Published Literature (SAMPL) regression guidelines [@lang2013basic]. A literature review was also used to identify common errors made by researchers when reporting linear regression, and a comprehensive list of 55 questions was developed to assess statistical quality. It was decided by the research team, consisting of three Australian accredited biostatisticians, to reduce the burden on reviewers by substantially reducing the number of questions. We focused on questions important to assessing assumptions and interpreting linear regression. The research team used an iterative approach to improve the wording of the questions by reviewing papers to understand issues reviewers may encounter. When these three statisticians were satisfied that the questions were appropriately worded, five independent experts (four biostatisticians and an epidemiologist) were given a briefing on the aims of this study and the questionnaire. They were asked to assess the questions and provide feedback on readability and length by examining two	randomly selected papers. Their feedback was used to further reduce the questions to the current checklist of 30 items.
+
+## Randomisation
+The randomisation process of selected papers occurred in two steps, as described below.
+
+### Paper selection and randomisation
+Papers which used the term 'linear regression' in the materials and methods section were selected from the 2019 issues of PLOS ONE using the "rplos" package in R [@Chamberlain2014rplos]. Papers that matched the inclusion criteria (see below) were randomly ordered, and the first eligible 100 were selected. A complete list of Digital Object Identifiers (DOIs) of included and excluded papers is available for transparency [DOI]. 
+
+####  Inclusion criteria:
+
+-   'Linear regression'  selected using the automated "searchplos" function within the "rplos" package, in the materials and methods section. 
+-   PLOS ONE papers published between January 1st 2019 December 31st 2019.
+-   Papers were selected which had health anywhere within subject area, provided by "searchplos" function.
+-   With article type select as Research Article, to exclude editorials etc.
+
+####  Exclusion criteria:
+
+-   Linear regression models that have accounted for clustering or random effects e.g. mixed, multilevel models.
+-   Non-parametric linear regression, Bayesian, or other alternative methods to linear regression.
+-   Linear regression was not part of the primary analyses of the paper and was related to pre-processing the data or verifying an instrument or method of data collection e.g. a linear regression used to calibrate an instrument to a reference sample. 
+
+The exclusion criteria were used to make models comparable by excluding analyses that do not have the same assumptions or are more complex. The primary researcher read the papers, starting with the first in the random series until 100 papers met the inclusion but not the exclusion criteria. The number of papers excluded, and the reasons were reported.  Due to the complexity of some papers, and to reduce the bias of excluding papers with poor quality, statisticians were allowed to exclude studies by answering that there were zero regressions in the paper despite the paper being selected for including linear regressions.
+
+### Random allocation of papers to statisticians
+Allocating the papers to statisticians was achieved by using a one-way random design for the inter-rater reliability of the statistician. Fleiss [@fleiss1981balanced] recommends that if there is no interest in comparing the mean of several raters, then a simple random sample of raters from the overall pool can be chosen. Hence, we randomly allocated papers using the following approach:
+
+-   Five papers were randomly allocated to each statistician.
+-   Papers were randomly reallocated to different statisticians, ensuring that no statistician was given the same paper twice.
+
+
+
+### Statistician inclusion and recruitment
+We aimed to use qualified statisticians to review papers. Statisticians often come from diverse backgrounds, sometimes without formal statistics degrees, and researchers in ecology, psychology, and economics may identify as statisticians, data scientists and data analysts. This is also recognised by the professional bodies of statistics for accreditation [@Statsoc2023].  Therefore, for inclusion in the study, statisticians were asked if they were employed or were previously employed as statisticians, data scientists or data analysts. Recruitment of statisticians occurred through targeted emails from information gained through organisational websites from within Australia and internationally, and more generically through Twitter, LinkedIn, professional societies such as the Statistical Society of Australia, universities, and other appropriate organisations. 
+
+Upon enrolling,	statisticians were emailed a participant information sheet, the study protocol,	the study questions, and an online link to five PLOS ONE papers to be reviewed, which can be accessed from [@lee_jones_2024_10620146]. Recruitment started in September 2020 and ended in June 2021, with the last participant completing the review in September 2021.  Participants were sent automatic reminders every two weeks. The median time to completion was four weeks. Forty-six statisticians were recruited, and five withdrew due to changed circumstances or lack of time. One statistician had difficulty completing the online form, and so was replaced.
+
+### Ethics and consent
+This study was granted ethics approval from the Queensland University of Technology (QUT) Human Research Ethics Committee and was approved under the category Human, Negligible-Low Risk (approval number: 2000000458). Consent was given by statisticians by filling out and returning the participation form, which also asked if they wanted to be acknowledged in the publication. The PLOS ONE authors whose papers were studied were considered to have already consented as they agreed to a data sharing policy [@PLOS2019], which states that data may be used to validate and reproduce results.
+
+
+## Data analysis plan
+This confirmatory study examines the reporting and quality of linear regression assumptions of published papers in the health and biomedical field. Reporting behaviours were described using frequencies and percentages, with	Wilson 95% confidence intervals used to account for prevalences close to zero. 
+
+The agreement of raters was described using observed agreement and Gwet’s statistic [@gwet2008computing], which performs well in situations of high agreement. Quadratic weighted Gwet's agreement was used for ordinal ratings. This weights disagreements according to the square of their distance on the scale and gives greater weight to larger disagreements compared to smaller ones. Assumptions of Gwet’s agreement were considered and found to be acceptable, testing these assumptions is not required, as they are related to the design of the experiment, such as appropriate rating scales. Gwet's agreement was used for categorical data that was either nominal or ordinal. Gwet's agreement is less sensitive than Cohen's kappa to the distribution of ratings across categories (marginal distributions), which may be caused by statisticians rating different papers. R version 4.3.2 [@Rteam] was used for all statistical analysis.  To increase transparency, the STROBE guideline was used for reporting cross-sectional studies [@von2007strengthening]. 
+
+
+
+## Calculating prevalence and reliability 
+This study was initially designed so the prevalence of individual assumptions could be calculated using the input of two statistical ratings, with the primary author (LJ) adjudicating disagreements. After the ratings for the  first few papers were received, a test was carried out, where the primary author rated the papers and then checked agreement against the two raters; it was realised that due: (i) to the complexity	and length of the papers and (ii) sometimes nuanced interpretation, a more comprehensive picture of prevalence was gained through all three ratings. Therefore, the prevalence of reporting behaviours was calculated using all three ratings. The primary author independently rated papers by filling in the survey and making notes on the PDF for the papers. The primary author adjudicated the difference between all three ratings by returning to the paper, making notes, and documenting each disagreement. Authors DV and AB were consulted	when decisions were unclear. Reliability was calculated for the two statistical ratings, then the final prevalence rating was used as a gold standard to further assess the agreement of the two ratings separately. Missing data from reviewers was addressed in the reliability analysis by substituting the primary authors' rating.
+
+
+## Linear regression 
+
+This study was not designed to be an in depth tutorial on linear regression but rather an overview so that the paper is accessible to non-statistical readers, for further reading on linear regression, see [@montgomery2021introduction;@tabachnick2007using; @weisberg2005applied]. Linear regression models aim to explain the relationship between a dependent variable and one or more independent variables by fitting a linear equation. In this equation, each independent variable is multiplied by a corresponding parameter, often referred to as the 'regression coefficient'. In its simplest form, when considering just one independent variable, this relationship is represented as a straight line, with the average change in (Y) predicted with each unit increase in (X), where Y is assumed to be dependent on X [@ernst2017regression]. For example, how much does body weight change (on average) with a one-year increase in age? Linear regression allows the exploration of this relationship's direction and magnitude.
+
+
+Linear regression models are most commonly fit using ordinary least squares, which minimises the sum of squares of the difference between observed values and their predicted values ([@fig-residplot]) given by the line of regression (Equation \ref{eq:reg}). Residuals may be seen as representing the variability in the dependent variable not explained by the independent variable. The adequacy of the model fit can be assessed by analysing the distribution of the residuals and identifying any patterns or systematic deviations from the regression model’s assumptions.
+
+
+
+```{r, out.width = "70%"}
+#| label: fig-residplot
+#| fig-cap: "Pictorial representation of a linear regression and residual, with the red line representing the line of best fit, the dots are the measured (observed) data. The residual is the difference between the observed and predicted values."
+
+knitr::include_graphics('figures/whatresid.eps') 
+```
+
+
+\begin{equation}
+ \label{eq:reg}
+\hat{Y}_i = \hat{\beta}_0 + \hat{\beta}_1 X_i + \hat{\epsilon}_i
+\end{equation}
+
+
+In Equation \ref{eq:reg}, which is the equation for simple linear regression, $\hat{\beta}_1$  is the estimated slope and represents the average change of the dependent variable with a one unit change of the independent variable. $\hat{\beta}_0$  is the Y intercept, which is the estimated value of Y when X = 0. $\hat{\epsilon}_i$ is the error term for the ith observation. This equation can be extended to incorporate multiple X variables (k parameters) as seen in Equation \ref{eq:reg1}.
+
+\begin{equation}
+ \label{eq:reg1}
+ \hat{Y}_i = \hat{\beta}_0 + \hat{\beta}_1 X_{1i} + \hat{\beta}_2 X_{2i} + \ldots + \hat{\beta}_k X_{ki} + \hat{\epsilon}_i
+\end{equation}
+
+
+
+To undertake hypothesis tests and create confidence intervals that give realistic approximations of the underlying relationship between variables,  it is assumed that the residuals are:  (i)  normally distributed, (ii) independent with mean zero, (iii) have constant variance, and that there is a linear relationship between the average change in Y and the model’s parameters (iv). This can be visualised by plotting the residuals against the predicted values ([@fig-standResiduals]). Residuals and predicted values can be standardised so that problematic observations can be easily identified by values that are $\pm3$, as within the standard normal distribution 99.7% of observations should fall in this range. The terms predicted and fitted values may often be used interchangeably, but fitted refers to the values estimated by the model using the same data that was used to create the model. Whereas predicted is used in a broader sense, it may refer to the fitted values or data in a new dataset that was not used to create the model.
+
+
+
+```{r, out.width = "70%"}
+#| label: fig-standResiduals
+#| fig-cap: "Example of residuals from a linear regression model. This example shows no clear violation of linearity, non-normality, or homoscedasticity, with the red line showing a hypothetical mean of zero, where there should be as many points above as below the line."
+
+# Simulate data
+set.seed(129539)  # set seed
+n <- 1000  # number of data points
+x <- rnorm(n)  # predictor
+y <- 2 * x + rnorm(n)  # linear relationship + noise
+
+# Fit linear model
+mod <- lm(y ~ x)
+
+# Calculate standardized residuals
+std_resid <- rstandard(mod)
+
+# Calculate standardized predicted values
+std_predicted <- scale(fitted(mod))
+
+
+
+#  Check for Linearity & Homoscedasticity using Standardized Residual vs Standardized Predicted plot
+SR <- ggplot(data = NULL, aes(x = std_predicted, y = std_resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0,
+             linetype = "dashed",
+             color = "red") +
+  scale_x_continuous(limits = c(-3, 3), breaks = seq(-3, 3, 1)) +  # Setting x axis limits and breaks
+  scale_y_continuous(limits = c(-3, 3), breaks = seq(-3, 3, 1)) +  # Setting y axis limits and breaks
+  xlab("Standardized predicted values") +
+  ylab("Standardized residuals") +
+  theme_minimal() +  # Use minimal theme
+  theme(
+    panel.background = element_blank(),
+    # Remove panel background
+    panel.grid.major = element_blank(),
+    # Remove major grid
+    panel.grid.minor = element_blank(),
+    # Remove minor grid
+    panel.border = element_rect(fill = NA, color = "black")  # Add border around the plot
+  )
+
+# Desired plot dimensions in pixels
+width_px = 1800
+height_px = 1200
+file_path <- "figures/SR.eps"
+
+# Convert dimensions to inches for 300 DPI
+width_in = width_px / 300
+height_in = height_px / 300
+ggsave(
+  file_path,
+  plot = SR,
+  device = "eps",
+  width = width_in,
+  height = height_in
+)
+knitr::include_graphics('figures/SR.eps') 
+
+```
+
+
+###  Assumptions
+
+1.	Normality: The residuals of the model are normally distributed.
+2.	Linearity: The mean of the dependent variable Y changes linearly with the model's parameters.
+3.	Homoscedasticity: The residuals have constant variance across all values of X.	
+4.	Independence: The residuals are independent of each other.
+
+
+#### Normality 
+
+Characteristics of a normal distribution include a symmetrical bell-curved shape around a mean, with mean, median, and mode all equal, and 95% of observations falling within approximately two (more precisely 1.96) standard deviations. Linear regression does not require the X or Y variables to be normally distributed, this assumption is only related to the residuals. Violation of normality does not necessarily lead to bias of regression coefficients, which depends on the sample size and degree of the violation. Non-normality of the residuals can lead to inaccurate estimates of p-values and confidence intervals and increased type I errors [@garson2012testing]. Regression models tend to be robust to normality violation, especially in large samples, but can be sensitive to heavy-tailed distributions or the presence of large outliers and influential points [@bakker2014outlierb]. The best way to check this assumption is through examining the residuals with descriptive statistics, including examining if the mean and median of the distribution of the residuals are similar, exploring if skewness and kurtosis are within reasonable bounds, and visually through plots including histograms and quantile-quantile plots (Q-Q Plot) ([@fig-normplot]) [@garson2012testing]. The Q-Q plot is created by plotting quantiles from the data against quantiles generated from the normal distribution [@thode2002testing].  The points should follow an approximately straight line if the data are normally distributed.
+
+
+
+```{r, results='hide'}
+
+file_path2 <- "figures/normplot.eps"
+# Start EPS device with specific dimensions
+postscript(
+  file_path2,
+  horizontal = FALSE,
+  onefile = FALSE,
+  paper = "special",
+  width = 7,
+  height = height_in
+)
+
+set.seed(449139) # set seed
+Residuals <-
+  rnorm(n = 500, mean = 0, sd = 1) # create a vector of 500 residuals with mean 0 and sd 1
+
+par(mfrow = c(1, 2))
+qqnorm(Residuals)
+qqline(Residuals)
+hist(Residuals)
+
+# Close the device
+dev.off()
+
+```
+
+
+```{r, out.width = "70%"}
+#| label: fig-normplot
+#| fig-cap: "Example of assessing the normality of the model residuals with plots, with points on the Q-Q plot generally following the straight line with a small deviation at the end and an approximate bell-shaped histogram, indicating that the residuals in this example are approximately normally distributed."
+
+knitr::include_graphics('figures/normplot.eps') 
+
+```
+
+
+
+#### Linearity 
+
+The linearity assumption is that the relationship between the predictor terms of the model (which are typically the X variables or powers of them such as X^2) and the average change in the Y variable (dependent variable) are linearly related through model parameter/s, i.e. the regression coefficient/s. There is a common misunderstanding about linear regression models that each independent variable must relate linearly, which is taken to be a straight line, to the dependent variable, Y.  This stems from the focus on simple linear regression, where there is only one X variable. In multivariable models, independent variables can be represented through multiple parameters, for example, age and age-squared, thus capturing more complex relationships, including splines and polynomials (e.g. quadratic, cubic, etc.). Even though X^2 is a nonlinear transformation of X (quadratic), the relationship remains linear in terms of the parameters. This is because, in linear regression, the expected value of Y is assumed to be a linear function of the parameters (coefficient/s) [@williams2013assumptions].
+
+The linearity assumption can be visually checked through scatterplots of residuals against individual variables in the model as well as predicted values [@garson2012testing]. The residual plots should be examined for patterns, including curvature, which may indicate non-linear relationships.  [@fig-nonlin] shows an example of linearity violation where a strong quadratic relationship is missing from the model. Understanding the underlying relationships in data is essential to resolving any problems. In the example above, the best solution is to identify the variable responsible for the issues and precisely model the polynomial relationship by properly adding a squared term to the model for that variable. Another solution may be to transform the data using the so called "ladder of transformations". For more detail, see [@benoit2011linear].  
+
+
+```{r, results='hide'}
+
+# creating plots and putting into figures
+file_path1 <- "figures/nonlin.eps"
+# Start EPS device with specific dimensions
+postscript(
+  file_path1,
+  horizontal = FALSE,
+  onefile = FALSE,
+  paper = "special",
+  width = width_in,
+  height = height_in
+)
+
+
+set.seed(868209)  # set seed
+# assign the integers 1 to 200 to a vector, with name x, and print
+x <- 1:200
+# simulate data from a quadratic regression model whose residuals are Normally
+# distributed with standard deviation 12
+mu <- 2 + 0.5 * x + 0.01 * x * x
+z <- 12 * rnorm(200)
+y <- mu + z
+fit1 <- lm(y ~ x)
+plot(fit1, 1, id.n = NULL, sub.caption = "")
+
+# Close the device
+dev.off()
+
+```
+
+
+
+```{r, out.width = "70%"}
+#| label: fig-nonlin
+#| fig-cap: "Example of a non-linear relationship missing from the model that is detectable in the residuals. The red line indicates a quadratic relationship between the residuals and fitted values."
+
+knitr::include_graphics('figures/nonlin.eps') 
+
+```
+
+
+
+
+
+#### Homoscedasticity
+
+Homoscedasticity, also known as homogeneity of the variance, assumes that the residuals have constant variance and are distributed equally for all independent variables [@hickey2019statistical]. For example, in a linear regression model, where blood pressure depends on age. If the variance is constant or homoscedastic, then the variance of the errors will remain constant for all values of X. Therefore, the residuals will be equally spread around Y = 0, and the residual scatter should be similar at young and old ages. Suppose the variance is not constant (heteroscedastic). In that case, a plot of the residuals may show that being younger corresponds with a narrow range of low blood pressure, but as people age,  blood pressure varies more widely.  This may cause a funnelling shape in the residuals as seen in [@fig-hetplot] and may indicate that other variables explain blood pressure, such as several chronic conditions or smoking status. 
+
+Homoscedasticity violations can have serious consequences as they can bias the standard error, causing inaccurate significance values and confidence intervals, leading to increased type I error  [@astivia2019heteroskedasticity]. Diagnosis of heteroscedasticity is best made by visualising the residuals and predicted values using scatterplots. Still, it can also be assessed statistically with methods such as the Breusch Pagan test [@kaufman2013heteroskedasticity].  As the cause of heteroscedasticity may not always be easily detected, it is essential to understand the relationships in the data with both clinical understanding and plots. Remedies for heteroscedasticity may include weighted regression [@neter1996applied], robust standard errors [@kaufman2013heteroskedasticity], data transformation [@montgomery2021introduction], including other variables in the model that improve prediction, or bootstrapping with a heteroscedasticity correction [@astivia2019heteroskedasticity].
+
+```{r, results='hide'}
+
+
+file_path3 <- "figures/hetplot.eps"
+# Start EPS device with specific dimensions
+postscript(
+  file_path3,
+  horizontal = FALSE,
+  onefile = FALSE,
+  paper = "special",
+  width = width_in,
+  height = height_in
+)
+
+set.seed(720568)  # set seed
+
+x_des_min <- 20
+x_des_max <- 100
+y_des_min <- 70
+y_des_max <- 220
+n <- 5000
+
+x <- abs(rnorm(n, 60, 60))
+
+x_act_min <- min(x)
+x_act_max <- max(x)
+x <-
+  (((x - x_act_min) / (x_act_max - x_act_min)) * (x_des_max - x_des_min)) + x_des_min
+
+
+b0 <- 1 # intercept chosen at your choice
+b1 = 10 # coef chosen at your choice
+h <-
+  function(x)
+    abs(x + (0.003 * x) + (0.001 * x ^ 2)) + (0.001 * x ^ 3) # h performs heteroscedasticity function (here I used a linear one)
+h1 <- abs(h(x))
+
+
+eps = rnorm(n, 0, h(x))
+
+y = b0 + b1 * x + eps
+y_act_min <- min(y)
+y_act_max <- max(y)
+y <-
+  (((y - y_act_min) / (y_act_max - y_act_min)) * (y_des_max - y_des_min)) + y_des_min
+
+
+fit <- lm(y ~ x)
+
+
+plot(fit, 1, id.n = NULL)
+
+# Close the device
+dev.off()
+
+```
+
+
+
+
+#### Independence 
+
+Linear regression assumes that each observation is independent of the other and that their residuals are uncorrelated. A commonly observed violation of independence generally involves repeated measures [@garson2012testing], for example, blood pressure measured over time in the same person. Measurements taken on the same subject (within-subject) are likely to be more similar than observations between subjects. When generalising results to a population, treating correlated observations as independent can lead to an underestimation of the variance in the linear regression, making estimates appear more precise than they are in reality. This may lead to increased type I errors, making the accuracy of standard errors and confidence intervals questionable [@nimon2012statistical].
+
+In addition to repeated measures, health research frequently involves other data structures where a correlation between observations (clustering) may be present [@garson2012testing] such as patients nested within doctors. The experience and ability of individual doctors may influence patient outcomes. Therefore, patients treated by the same doctor may not be independent.  The independence of observations should be a part of the study design and sometimes may not require testing but should always be discussed. A lack of independence in the data can be visualised by plotting residuals by the individual (row number) to look for serial correlation (autocorrelation), when there are no violations; points should fall randomly around the zero line, which can be assessed using the Durbin--Watson test [@garson2012testing]. Suppose there is suspected clustering of the data. It can be examined by fitting an appropriate statistical method, such as a random effects model, to adjust for correlated observations. Therefore, the general remedy for independence violations is to use a method such as Linear Mixed Models (LMM) or General Estimating Equations (GEE) to account for the non-independence of data.
+
+
+
+
+
+```{r, out.width = "70%"}
+#| label: fig-hetplot
+#| fig-cap: "Example of residuals displaying heteroscedasticity, where a funnel shape can be observed in the residuals instead of random scatter around the zero (red line)"
+ 
+knitr::include_graphics('figures/hetplot.eps') 
+
+```
+
+
+#### Outliers and influential observations
+
+When undertaking statistical methods such as linear regression, it is important to identify influential observations that, if removed from the model, can substantially change the regression coefficients [@hickey2019statistical]. While the presence or absence of outliers and influential observations is not an assumption of linear regression, they can potentially change results and may be the cause of assumption violations. Outliers should not be routinely deleted. To minimise questionable research practices, the study protocol should address the management of outliers, such as data transformation, the use of robust regression, sensitivity analysis, bootstrapping, or variable truncation [@bakker2014outlier].
+
+Two ways in which a single data point can affect the results of a model are when the observation is an outlier and/or has high leverage [@forstmeier2017detecting]. An outlier can be defined as where the response (Y) does not follow the general trend and falls outside the range of the other values. Outliers generally have large residual values with a sizable difference between the observed and predicted data.  Leverage measures the distance between an observation’s X value and the average X variable values in the data. Observations with extreme values of X are said to have high leverage [@hickey2019statistical].  Data points that display high leverage and/or are outliers have the potential to be influential but must be investigated to determine if they substantially change regression coefficients. A way to measure this change is known as Cook's Distance and is a combination of each observation’s leverage and residual values [@tabachnick2007using].
+
+
+Results 
+=======
+
+In 2019, there were 1005 health research papers that reported using linear regression in the methods and materials section from PLOS ONE. Of these papers, 100 that met our inclusion criteria were randomly selected and sent out for statistical review ([@fig-Flow]). Reviewers could exclude papers by indicating there were no linear regression results reported in the paper. This was the case for ten papers; interestingly, there was little agreement among statisticians, with only one paper being excluded by all three statistical raters. After a review of these papers by the study authors, five papers were excluded due to having no reported regression results. Three of these papers reported the use of linear regression but did not report any individual results, two of which could be considered pre-processing; the other paper reported the use of ANOVA and linear regression but only reported the ANOVA results. The final two excluded papers used more complex methods, one using random effects and the other using Passing--Bablok regression.  Therefore, 95 papers were considered in reviewing statistical reporting behaviours (Table 1), a majority of which were observational studies (`r round(freq(wide$design)[1,2], 0)`%) with human participants (`r round(freq(wide$participants)[1,2], 0)`%). 
+
+```{r}
+#| label: fig-Flow
+#| fig-cap: "Flow diagram of the included papers"
+
+knitr::include_graphics('figures/flowD2.eps') 
+```
+
+
+Over half of the statisticians that agreed to review papers identified themselves as biostatisticians, with `r round(freq(dem$Edu)[1,2]+ freq(dem$Edu)[2,2],0)`%  of the sample having either a PhD or master's qualification and  53%  having 10+ years of experience (Table 2).  
+
+\input{tables/df1a.tex}
+
+\input{tables/df2a.tex}
+
+
+
+Of the `r nrow(wide)` papers rated, `r freq(wide$assum4)[1]` (`r round(freq(wide$assum4)[1,2], 0)`%) did not have any reporting of assumptions, `r freq(wide$assum4)[2]` (`r round(freq(wide$assum4)[2,2], 0)`%) papers reported they checked one assumption, `r freq(wide$assum4)[3]` (`r round(freq(wide$assum4)[3,2], 0)`%)  reported on two assumptions, `r freq(wide$assum4)[4]` (`r round(freq(wide$assum4)[4,2], 0)`%) checked three assumptions, with no author teams checking all four assumptions. Linearity was not required for `r nrow(wide) - nrow(linearity) ` papers as they had no continuous independent variables; for these papers, only `r int_to_words(freq(widenolin$assum4Nolinear)[2])` checked one assumption (normality), with no other assumptions reported.
+
+
+The questions initially asked if an assumption was checked, and then statisticians were asked to tick the boxes of how and what was checked. To avoid confusion with percentages, it was decided to keep the interpretation of how and why assumptions were checked at the level of papers rather than individual analyses within papers. Authors commonly reported checking continuous/quantitative data for normality but did not talk specifically about the regression analysis or models' residuals. Of the  `r freq(wide$normality_4)[2]` (`r round(freq(wide$normality_4)[2,2], 0)`%)  papers that checked normality, `r int_to_words(table(wide$normresidual_4, wide$assumptions_4)[2,2])` correctly checked residuals (Table 3).  Only `r int_to_words(freq(wide$shownorm))[2]` papers displayed some results of these checks, with partial reporting of results, with one paper reporting the optimal Lamba result for their Box-Cox transformation and the other two showing box plots.  A further `r int_to_words(table(wide$normalplot, wide$normality_4)[2])` author teams presented box plots but did not mention normality. The same `r int_to_words(freq(wide$assumptions_4)[2])` papers that correctly checked residuals for normality were the only papers with a strategy for checking assumptions for linear regression.
+
+
+Of the `r nrow(linearity)` papers that required linearity assessment, `r freq(wide$linearity_4)[2]` (`r round(freq(wide$linearity_4)[2,2], 0)`%) directly assessed linearity, with a further  `r table(wide$linearplot, wide$linearity_4)[2]`  papers displaying scatterplots but not discussing them.  Six authors who discussed linearity used scatterplots of the raw data to visualise relationships between variables;  residuals were discussed in two papers; `r int_to_words(freq(wide$lintest_4)[2])`  papers used a test to assess linearity, with four authors fitting polynomials and two using splines. Homoscedasticity was discussed by `r freq(wide$homoscedasticity_4) [2]` (`r round(freq(wide$homoscedasticity_4)[2,2], 0)`%) author teams, with most of these authors correctly checking this assumption using the residuals.  Independence was addressed in `r freq(wide$independence_4)[2]` (`r round(freq(wide$independence_4)[2,2], 0)`%) papers, while another `r freq(wide$indepcross)[2]` papers mentioned that their studies were cross-sectional but did not directly discuss independence. 
+ 
+
+
+The agreement between statistical raters on assumptions and outliers was high (Table 4, for full reporting, see S1 Table), with observed agreement of over 80% for all assumptions except independence, which had a slightly lower agreement of `r df4$Agree[4]`. When considering agreement by chance for independence, the Gwet's statistic was `r df4$Gwet[4]`; while this is still regarded as good agreement [@landis1977measurement], it is an arbitrary threshold and was lower than expected given expert raters. Reviewing the disagreements, a number of authors stated that studies were cross-sectional without discussing independence, and potential clusters within the data. Therefore, simply mentioning a cross-sectional study design was not considered an assumption check.  The other main reason for disagreement among raters was that some papers contained plots without any discussion of assumptions, these were counted but not considered an assumption check, as it is possible to show a scatterplot with a non-linear relationship present.  When comparing statistical ratings to the final calculated prevalence (gold standard), these were generally higher than between raters, indicating good overall reliability in the study.
+While there was no missing data in the assumptions and outliers section of the questionnaire, four of the 190 reviews were rated by one of the statisticians to have no linear regression, so they were replaced by the primary authors' rating for the reliability analysis.
+
+
+Statisticians were asked to rate the statistical quality of each paper on a Likert scale with one representing very poor and five indicating very good. Gwet's using quadratic weights showed good agreement (`r rategwet$Gwet` CI:`r rategwet$CI95`) between raters. After averaging the ratings, the mean ratings for papers were `r round(mean(rowMeans(rate)),1)` SD: `r round(sd(rowMeans(rate)),1)`,  indicating that statisticians rated the statistical quality between poor and fair. Through a combination of the prevalence of the questions and a review of the papers by the main author, eight misconceptions regarding linear regression assumptions and outliers were identified  (Table 5).                                                                                
+
+\input{tables/df3a.tex}
+
+\input{tables/df4a.tex}
+
+
+
+Discussion 
+=======
+
+Results showed that only `r round(100 -freq(wide$assum4)[1,2],0)`% of authors checked any linear regression assumptions; this was similar to a review of papers by Real et al. [@real2016quality], who examined the quality of reporting for multivariable regression models in observational studies and found of the 77 papers using linear regression, 39% reported testing assumptions. However, the authors did not provide details on which assumptions were tested. In our study, `r  round(freq(wide$normality_4)[2,2],0)`% of author teams suggested they checked for normality, only `r  round(freq(wide$normresidual_4)[2],0)` of these papers mentioned residuals, and `r round(freq(wide$normy_4)[2,2],0)`% wrongly checked the Y variable.  This common statistical misconception about normality was higher in our study than in a previous study by Ernst and Albers [@ernst2017regression], who assessed 172 papers in clinical psychology using linear regression and found that 4% mistakenly assessed the original variables' normality rather than the models' residuals. The higher prevalence observed for this misconception in our study may be due to lower statistical literacy in general health and biomedical areas, with health professionals often having completed one introductory statistics course [@altman2002poor]. In contrast, most psychology degrees have higher levels of statistical training.  However, Ernst and Albers [@ernst2017regression] indicate that reporting practices for regression assumptions in clinical psychology journals were generally poor, with only 2% of papers being transparent and correct. 
+
+
+
+A study with a more comparable population by Fernandez-Nino and Hernandaz--Montes [@fernandez2018reporting] assessed 108 papers in the health research journal *Biomedica* between 2000 to 2017. The authors used a detailed checklist reviewing statistical modelling, including statistical assumptions. This study concluded that 22% of papers mentioned any statistical assumptions, with 13% reporting checking normality, 3% linearity, 8% homoscedasticity, and 8% independence, with only 9% having a strategy to explore assumptions.  Another study reviewing ANOVA reporting practices in three psychology journals in 2012 [@zhou2017reassessment], found that 94% of papers did not provide statistical information on assumption tests. Only 5% of authors assessed normality, and 3% homogeneity of variance, with none discussing independence. A study in the Orthopaedic literature [@christiano2021statistical] found that no papers checked all linear regression assumptions with 25% (29/79) checking at least one assumption. We observed similar results as other studies with low reporting of independence (`r  round(freq(wide$independence_4)[2,2],0)`%) and homoscedasticity (`r round(freq(wide$homoscedasticity_4)[2,2],0)`%) but had a higher prevalence of discussing normality (`r round(freq(wide$normality_4)[2,2],0)`%) and linearity (`r round(freq(wide$linearity_4)[2,2],0)`%). While this higher prevalence may simply be sample-to-sample variance, it may suggest that authors are starting to get the message that assumptions need to be checked, as journals increasingly use reporting guidelines.  Like other studies, only a few author teams correctly checked assumptions or provided any details of assumption checks.
+ 
+ 
+ 
+
+ 
+ Questionable Research Practices occur when outliers are selectively removed, which may produce a statistically significant result that would otherwise not be significant [@wicherts2016degrees]. It has been found in much of the health literature that identifying influential observations is either entirely missing or poorly assessed [@bakker2014outlier; @simmons2011false].   Our results confirmed that reporting outliers needs improvement, with no discussion of outliers in `r round(freq(wide$outliers_4)[1,1],0)` (`r round(freq(wide$outliers_4)[1,2],0)`%) papers, with `r round(freq(wide$outaction_4)[4,1],0)` papers removing outliers from all further analyses with only `r int_to_words(round(freq(wide$outaction_4)[5,1],0))` papers using a sensitivity analysis.  This was higher than Fernandez--Nino and Hernandaz--Montes  [@fernandez2018reporting] who reported 4% of 113 papers reviewed in *Biomedica* mentioned outliers, but similar results reported by Valentine et al. [@valentine2018have].  In response to the reproducibility crisis in psychology, Valentine et al. [@valentine2018have] conducted a study examining the reporting of outliers at two-time points, firstly in 2012 at the beginning of the crisis (poor practice occurred before this period, but the extent of the problem was formally explored in 2012), and in 2017. A total of 2235 experiments were analysed, with authors concluding there had been an increase in reporting of outliers in psychology from 16% to 25%, but reporting practices remained poor.
+ 
+ \input{tables/df5a.tex}
+ 
+ Although peer review is considered the most trustworthy way of selecting manuscripts for publication and improving the quality of papers in medical journals, Cobo et al. [@cobo2007statistical] advise that there is very little evidence to support this view. Altman [@altman1998statistical] suggested that reviewers are often no more knowledgeable than the authors and recommended that statistical reviewers be used to reduce errors and improve quality. In the only randomised controlled trial in assessing the effectiveness of statistical review [@cobo2007statistical],  papers were allocated into four groups (1) clinical reviewers (control group); (2) clinical reviewers plus a statistical reviewer; (3) clinical reviewers with a checklist; and (4) clinical reviewers plus a statistical reviewer and checklist. This study concluded a measurable improvement in the quality of papers with statistical reviewers but no improvement in quality was observed for the checklist group. Statistical review results in important changes to manuscripts above and beyond average review about 60% of the time and is essential in improving the quality of published manuscripts [@hardwicke2019should]. The generally low ratings for papers by statisticians in our study indicates that authors would have benefited from statistical reviews pre-publication and can still benefit from feedback from this post-publication statistical review. We found that methods sections were often unclear and did not have a detailed account of assumptions checked. While it is encouraging that many researchers are using scatterplots to visualise data, the discussion of assumptions remains sparse. 
+ 
+It is recommended that statistical reviewers should always be part of editorial teams. The method (linear regression) reviewed here is commonly used in the health field, and assumptions are relatively straightforward to interpret. If we extrapolate, the problems are expected to be greater for more complicated methods such as mixed models, structural equation models, etc. It is recognised that the volume of papers going through journals means that a statistician will only view a small proportion of papers going through to publication. Therefore, journals should invest in basic statistical resources for researchers and reviewers. There is also an opportunity to implement automated tools to search for tests and match appropriate assumptions in documents [@schulz2022future]. While this approach should not replace human reviewers, it can complement them, save reviewers time, and produce automated feedback to researchers directing them to statistical resources. 
+
+Researchers discussing assumptions would be a big improvement on current practice.  Detailed assumption checks can be placed in supplementary tables and plots. Journal editorial policies should also be considered. In most journals, page/word limits result in relatively limited space for statistical methods, although some of this can go into supplemental materials. It is possible that some teams did the appropriate checks but chose to avoid reporting on them due to reducing complexity (saving space) or the perception that doing so could make the review process more difficult. PLOS ONE does not have page or space limits, so this may be less of a consideration in this case. However, the author’s normal reporting practice would be expected to affect how statistical sections are reported. It is recommended that journals focus on good scientific practices for statistical sections, which focus on describing what was done in enough detail so that another researcher could reproduce the results.
+
+
+In teaching statistics to health professionals it can be tricky to get the balance right between too much theory and too little. Introductory statistical courses may compound problems for health professionals, which are often taught in a cookbook manner, where there is no emphasis placed on investigating the appropriateness of statistical methods  [@brownstein2018perspective; @gigerenzer2004mindless]. Our results reinforced this view with many papers checking only normality, often with generic statements about continuous variables. Several authors used combinations of univariate non-parametric tests followed by linear regression to do multivariable modelling without commenting on assumptions. These results suggest that importance needs to be placed on underlying statistical theory rather than teaching statistics as an isolated series of tests so that methods can be put in context and better understood by relating them to other methods. 
+
+First-year statistical courses often emphasise  t-tests, ANOVA and regression individually with well-behaved data. Students are then offered the alternative of the non-parametric test if data is not normally distributed.  This basic understanding of assumptions of parametric tests is pervasive. Many researchers are unaware that t-tests, ANOVA and linear regressions can be seen in a general linear model framework [@norman2003PDQ], where X variables can be either categorical or continuous. This knowledge is vital in selecting the correct choice of statistical tests, and assumptions are related to the residuals rather than the raw X or Y variables. Researchers often feel comfortable testing for normality and using non-parametric tests because it gives a binary answer, and there is comfort in following exact rules. While there is nothing wrong with using non-parametric tests, often they lack power and the choice of descriptive statistics should fit in with the overall goal of the analysis. If the purpose is multivariable modelling, using non-parametric statistics for the univariate step does not make sense.  It is recommended that health professionals be taught more holistically with a bigger picture of 'everything is a regression’ [@Hannay2020Everything], emphasising statistical thinking where students become more comfortable with uncertainty, and statistical assumptions be taught in the broader overview of modelling rather than a narrow univariate sense. 
+
+
+Limitations
+===========
+
+PLOS ONE is a mega journal crossing many disciplines but may not represent all journals. Therefore, this study may not be generalisable to all fields. Papers were randomly selected using the term linear regression; this may be biased toward authors with enough knowledge to identify the correct name. Although the bias is unknown, naming conventions may also be field-specific and unrelated to quality. Finding these papers would require the researchers to read a wide selection of papers that would be time-consuming and may not yield many additional papers. In scoping this project, an automated search of PLOS ONE was created to identify the term 'regression'. Then papers identifying other forms of regression (e.g., logistic or Poisson regression) were excluded. Although this was effective, it excluded papers using linear regression with other methods. As it is common for authors to undertake multiple forms of analysis in papers, it was decided that a simple approach of searching for linear regression would be more representative of papers in general.
+
+Including 40 statistical raters potentially reduced rater bias but may have increased variability in some questions. Using two trained statistical raters may have reduced this variability. Still, the authors believe the design used was more reflective of real-world statistical reviews of papers and is, therefore, generalisable. This bias was explored by calculating agreement between the final prevalence score and each set of ratings, which tended to be higher than between the two sets of ratings, indicating while there was some variability, the individual statistical ratings were reflective of the overall results.
+
+
+Conclusions
+===========
+
+This study contributes to this growing area of meta-research by exploring the current statistical practice and describing eight misconceptions for linear regression assumptions made by researchers.  Recommendations for improving this research-to-practice gap include teaching statistics holistically, where most statistics can be seen in a regression framework rather than a series of unconnected tests.  To help reviewers assess statistical methods, they should receive basic statistical training and access to resources and automated tools that guide statistical feedback. Journal editorial practices should be reconsidered to focus on good reporting practices rather than word limits to ensure statistical methods are reported in enough detail to be reproduced.
+
+Supporting Information {.unnumbered}
+======================
+
+\beginsupplement
+
+S1 Table: Full reporting of agreement and reliability for statistical raters.
+
+Acknowledgements
+================
+
+We acknowledge all the statisticians (named and not named) who kindly gave up their time to contribute to this publication by reviewing papers, including: Ingrid Aulike,	Peter Baker,	Brigid Betz-Stablein,	Enrique Bustamante,	Taya Collyer,	Susanna Cramb,	Alanah Cronin,	Laura Delaney,	Zoe Dettrick,	Eralda Gjika Dhamo,	Des FitzGerald,	Peter Geelan-Small,	Edward Gosden,	Alison Griffin,	Jenine Harris,	Cameron Hurst,	Kyle James,	Helen Johnson,	Jessica Kasza,	Karen Lamb,	Stacey Llewellyn,	James Martin,	Miranda Mortlock,	Satomi Okano,	Alan Rigby,	Michael Steele,	Megan Steele,	Jacqueline Thompson,	Simon Turner,	Michael Waller,	Kevin Wang,	Jace Warren,	Natasha Weaver,	Lachlan Webb,	and Janet Williams.
+
+# Funding
+There was no cost associated with this research except for attending conferences. These costs were covered by the primary author's PhD allocation from the health faculty, Queensland University of Technology, and scholarships. The Statistical Society of Australia (SSA) and the Association for Interdisciplinary Meta-research & Open Science (AIMOS) supported the primary author with travel grants to attend their respective conferences. These scholarships did not influence the results of the study.
+
+
+# Competing Interests
+The authors declare there are no competing interests.
+
+# Data Availability
+The raw data and a reproducible R Quarto file used to produce this paper, including all tables and figures have been stored in a GitHub repository and can be accessed at [DOI]
+
+
+# Author Contributions
+\noindent  \textbf{Conceptualization:} Lee Jones, Adrian Barnett, Dimitrios Vagenas. \
+\noindent  \textbf{Data Curation:} Lee Jones. \
+\noindent  \textbf{Formal Analysis:} Lee Jones.\
+\noindent  \textbf{Funding Acquisition:} Lee Jones.\
+\noindent  \textbf{Investigation:} Lee Jones.\
+\noindent  \textbf{Methodology:} Lee Jones, Adrian Barnett, Dimitrios Vagenas. \
+\noindent  \textbf{Project Administration:} Lee Jones, Dimitrios Vagenas.\
+\noindent  \textbf{Resources:} Dimitrios Vagenas.\
+\noindent  \textbf{Software:} Lee Jones.\
+\noindent  \textbf{Supervision:} Adrian Barnett, Dimitrios Vagenas. \
+\noindent  \textbf{Validation:} Adrian Barnett, Dimitrios Vagenas. \
+\noindent  \textbf{Visualization:} Lee Jones. \
+\noindent  \textbf{Writing – Original Draft Preparation:} Lee Jones. \
+\noindent  \textbf{Writing – review \& editing:} Lee Jones, Adrian Barnett, Dimitrios Vagenas.
+
+
+
+
+
+
