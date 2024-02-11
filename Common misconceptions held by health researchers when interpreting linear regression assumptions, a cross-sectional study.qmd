@@ -982,7 +982,7 @@ A set of questions was developed to  understand current reporting practices for 
 The randomisation process of selected papers occurred in two steps, as described below.
 
 ### Paper selection and randomisation
-Papers which used the term 'linear regression' in the materials and methods section were selected from the 2019 issues of PLOS ONE using the "rplos" package in R [@Chamberlain2014rplos]. Papers that matched the inclusion criteria (see below) were randomly ordered, and the first eligible 100 were selected. A complete list of Digital Object Identifiers (DOIs) of included and excluded papers is available for transparency [DOI]. 
+Papers which used the term 'linear regression' in the materials and methods section were selected from the 2019 issues of PLOS ONE using the "rplos" package in R [@Chamberlain2014rplos]. Papers that matched the inclusion criteria (see below) were randomly ordered, and the first eligible 100 were selected. A complete list of Digital Object Identifiers (DOIs) of included and excluded papers is available for transparency [@lee_jones_2024_10645770]. 
 
 ####  Inclusion criteria:
 
@@ -1426,7 +1426,7 @@ There was no cost associated with this research except for attending conferences
 The authors declare there are no competing interests.
 
 # Data Availability
-The raw data and a reproducible R Quarto file used to produce this paper, including all tables and figures have been stored in a GitHub repository and can be accessed at [DOI]
+The raw data and a reproducible R Quarto file used to produce this paper, including all tables and figures have been stored in a GitHub repository and can be accessed at [@lee_jones_2024_10645770]
 
 
 # Author Contributions
